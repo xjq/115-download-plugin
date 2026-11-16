@@ -12,6 +12,7 @@
 - **右键菜单**：选中文本（磁力/裸 SHA1 哈希）或右键链接直接离线
 - **批量离线**：面板中可单条离线、全部离线、复制链接
 - **登录检测**：自动读取 115.com Cookie 判断登录态，未登录时提示并提供登录入口
+- **扫码获取 Token / Cookie**：在扩展页面里直接调 115 扫码接口，手机扫码后换取登录 Cookie（纯浏览器实现，不经过第三方服务器）；页面上的「自检二维码解码」用 jsQR 解码自己渲染的二维码，确认渲染没出错
 - **错误处理**：任务已存在、需要安全验证（errno 911）、未登录（errno 99）等常见错误均有提示
 
 ## 安装
@@ -77,6 +78,41 @@ Chrome 157 正式版实测：用独立临时配置启动 Chrome 并传入签名 
 
 > 提示：在 URL 后加 `#115-show` 可强制展开链接列表面板。
 
+## 扫码获取 Token / Cookie
+
+工具栏弹窗或设置页点「扫码获取 Token / Cookie」，打开扩展内页面 `login.html`：
+
+1. 选设备类型（默认 `web`，也可以 `android` / `mac` / `tv` …），点「获取二维码（Token）」
+   - 页面下方会列出 token 的 `uid` / `time` / `sign` / `qrcode`，每项可单独复制，「复制 Token JSON」可整段复制
+   - 实测：`web / android / ios / alipaymini / wechatmini / qandroid` 六个通道的 token 带 `qrcode` 链接；
+     `mac / linux / windows / tv` 只返回 `uid / time / sign`（没有 `qrcode` 是正常的，二维码图片照常能出）
+2. 用手机 115 App 扫码 → 在手机上确认
+3. 点「开始等待扫码」，页面按 1 秒间隔轮询状态，确认后自动兑换 Cookie，可复制 / 下载
+
+接口调用全部在页面里完成（`fetch` 直连 115 官方域名，`credentials:'omit'`，不覆盖浏览器里的登录态）。
+
+| 步骤 | 请求 |
+| --- | --- |
+| 取 token | `GET https://qrcodeapi.115.com/api/1.0/web/1.0/token/` → `data.{uid,time,sign,qrcode}` |
+| 取二维码图片 | `GET https://qrcodeapi.115.com/api/1.0/{app}/1.0/qrcode/?uid={uid}`（直接 `<img>` 加载） |
+| 轮询状态 | `GET https://qrcodeapi.115.com/get/status/?uid&time&sign` → `data.status`：`0` 未扫 / `1` 已扫 / `2` 已确认 / `-1` 过期 / `-2` 取消 |
+| 兑换 Cookie | `POST https://passportapi.115.com/app/1.0/{app}/1.0/login/qrcode/`，body `app={app}&account={uid}` |
+
+注意事项：
+
+- **二维码图片里的内容与 token 的 `qrcode` 字段只有域名不同**：解出来是 `https://yun.115.com/scan/dg-<uid>`，
+  所以自检只比对末尾的 `/scan/dg-<uid>`。
+- 用同一 app 类型扫码会把这个类型的旧设备踢下线（选 `web` 会让当前电脑的 115 网页登录失效），页面有提醒。
+- **设备类型由页面选择决定，与用哪个手机 App 扫码无关**：选 `ios` 就得到被 115 认作「iOS」的 Cookie，
+  手机上用 115 App 还是微信小程序扫都一样。登录成功后页面会额外显示 115 当前认的端信息
+  （`ssoent` / `login_type` 等）以便核对。
+- Cookie 只显示在页面上，**不写入 storage、不上传**；关闭页面即丢弃。日常使用离线功能不需要它。
+- 自测（不需要真浏览器）：`node tools/test-login.js` —— 用假 DOM + 假 fetch 驱动 `login.js`，
+  验证接口调用顺序、请求参数、状态机（未扫/已扫/确认/过期/取消）、结果渲染与诊断行。
+- 出问题时看页面底部的「诊断」行（也会打到 Console）：会显示取 token、二维码图片加载、
+  每次状态变化、兑换 Cookie 各步的耗时结果；点「扫码获取 Token / Cookie」没反应时，
+  先确认扩展是否已「重新加载」，再看诊断行有没有 `页面已就绪`。
+
 ## 工作原理
 
 ```
@@ -101,9 +137,12 @@ background.js    Service Worker：登录检测、签名获取、任务提交、�
 content.js       页面检测 + UI（浮动按钮/面板/Toast）
 popup.html/js    工具栏弹窗：登录状态、重扫当前页、快捷入口
 options.html/js 设置页：浮动按钮/文本检测/ed2k 开关、保存目录（实验性）
+login.html/js    扫码获取 Token / Cookie（纯浏览器端调 115 扫码接口）
+lib/jsQR.js      二维码解码（仅用于页面自检，MIT，jsQR 1.4.0）
 icons/          图标（tools/make_icons.py 可重新生成）
 test/test.html  本地测试页（python -m http.server 后访问）
 tools/pack.ps1  一键打包 CRX + ZIP
+tools/test-login.js  login.js 离线自测（node tools/test-login.js）
 tools/crx_id.py 从 CRX3 解析公钥并计算扩展 ID
 dist/           打包产物（.crx / .zip / .pem 私钥）
 ```

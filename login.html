@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>115 扫码登录 · 获取 Token / Cookie</title>
+<script src="lib/jsQR.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: #f3f4f6; color: #1f2937; min-height: 100vh; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1 { display: flex; align-items: center; gap: 12px; font-size: 21px; margin-bottom: 6px; }
+  h1 img { width: 34px; height: 34px; border-radius: 10px; }
+  .sub { color: #6b7280; font-size: 13px; margin-bottom: 18px; line-height: 1.6; }
+  .card { background: #fff; border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.05); padding: 18px 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 14px; margin-bottom: 12px; color: #111827; display: flex; align-items: center; gap: 8px; }
+  .card h2 .step { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: #0FA958; color: #fff; font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  select, input[type="text"] { border: 1px solid #d1d5db; border-radius: 8px; padding: 7px 10px; font-size: 13px; outline: none; background: #fff; color: #374151; }
+  input[type="text"] { width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  select:focus, input[type="text"]:focus { border-color: #0FA958; box-shadow: 0 0 0 3px rgba(15,169,88,.12); }
+  button { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 8px; padding: 7px 12px; font-size: 12px; cursor: pointer; transition: all .15s; }
+  button:hover:not(:disabled) { border-color: #0FA958; color: #0FA958; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: #0FA958; border-color: #0FA958; color: #fff; }
+  button.primary:hover:not(:disabled) { background: #0c8f4c; color: #fff; }
+  button.danger { color: #b91c1c; border-color: #fecaca; }
+  .hint { font-size: 12px; color: #9ca3af; line-height: 1.6; margin-top: 8px; }
+  #qrBox { display: flex; align-items: center; justify-content: center; min-height: 268px; margin-top: 14px; border: 1px dashed #e5e7eb; border-radius: 12px; background: #fafafa; padding: 10px; }
+  #qrBox img { width: 248px; height: 248px; image-rendering: pixelated; border-radius: 6px; background: #fff; }
+  #qrBox img[hidden] { display: none; }
+  #qrPlaceholder { font-size: 13px; color: #9ca3af; text-align: center; line-height: 1.8; }
+  #qrPlaceholder[hidden] { display: none; }
+  .status { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 12px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #d1d5db; flex: none; }
+  .dot.on { background: #3b82f6; animation: pulse 1.2s infinite; }
+  .dot.ok { background: #10b981; }
+  .dot.err { background: #ef4444; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  .tok { display: grid; grid-template-columns: 64px 1fr auto; gap: 6px 8px; align-items: center; font-size: 12px; margin-top: 10px; }
+  .tok .k { color: #6b7280; }
+  .tok .v { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; word-break: break-all; background: #f3f4f6; border-radius: 6px; padding: 4px 6px; min-height: 24px; }
+  .tok button { padding: 3px 8px; font-size: 11px; }
+  .out-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .cookie-list { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; font-size: 12px; margin-top: 8px; }
+  .cookie-list .k { color: #6b7280; font-family: ui-monospace, Consolas, monospace; }
+  .cookie-list .v { font-family: ui-monospace, Consolas, monospace; word-break: break-all; color: #111827; }
+  .warn { font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 10px; line-height: 1.6; margin-top: 10px; }
+  .muted { color: #9ca3af; }
+  .scan-ok { color: #059669; font-weight: 600; }
+  footer.note { font-size: 12px; color: #9ca3af; line-height: 1.8; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><img src="icons/icon48.png" alt="">115 扫码获取 Token / Cookie</h1>
+  <p class="sub">
+    全程在浏览器里完成：向 115 官方接口取二维码 → 手机 115 App 扫码 → 轮询状态 → 换取登录 Cookie。<br>
+    <b>不经过任何第三方服务器</b>，结果只显示在本页，不写入存储；关掉页面即丢弃。
+  </p>
+
+  <div class="card">
+    <h2><span class="step">1</span>获取二维码 Token</h2>
+    <div class="row">
+      <select id="appSel" title="扫码绑定的设备类型，决定拿到哪种设备的登录态"></select>
+      <button id="getToken" class="primary">获取二维码（Token）</button>
+      <button id="copyToken" disabled>复制 Token JSON</button>
+    </div>
+    <p class="hint" id="appHint"></p>
+
+    <div id="qrBox">
+      <div id="qrPlaceholder">点「获取二维码」后，这里显示 115 登录二维码<br>有效期约 2 分钟，过期需重新获取</div>
+      <img id="qrImg" alt="115 登录二维码" hidden>
+    </div>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">尚未获取二维码</span></div>
+
+    <div class="tok" id="tokRows" hidden>
+      <span class="k">uid</span><span class="v" id="vUid"></span><button data-copy="">复制</button>
+      <span class="k">time</span><span class="v" id="vTime"></span><button data-copy="">复制</button>
+      <span class="k">sign</span><span class="v" id="vSign"></span><button data-copy="">复制</button>
+      <span class="k">qrcode</span><span class="v" id="vQrcode"></span><button data-copy="">复制</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">2</span>扫码登录，换取 Cookie</h2>
+    <div class="row">
+      <button id="login" class="primary" disabled>开始等待扫码</button>
+      <button id="cancel" class="danger" disabled>取消轮询</button>
+      <button id="selfCheck">自检二维码解码</button>
+    </div>
+    <p class="hint">
+      「开始等待扫码」后：二维码被扫 → 手机上确认 → 自动兑换 Cookie。
+      自检会用 jsQR 解码上面显示的二维码，和 token 里的 uid 比对，确认渲染没出错。
+    </p>
+    <div class="warn" id="kickWarn">
+      注意：兑换出的 Cookie 会被 115 标成上面选的设备类型，同一类型里已登录的旧设备会被踢下线（例如选「网页版」会让当前电脑的 115 网页登录失效）。
+      扫码用 115 App 还是微信小程序，都不影响这个设备类型。
+    </div>
+
+    <div id="result" hidden>
+      <div class="status"><span class="dot ok"></span><span id="resultTitle" class="scan-ok"></span></div>
+      <div class="cookie-list" id="cookieList"></div>
+      <div class="out-actions">
+        <button id="copyCookie">复制 Cookie 串</button>
+        <button id="copyJson">复制完整 JSON</button>
+        <button id="downloadJson">下载 JSON</button>
+      </div>
+      <p class="hint" id="sessionInfo" hidden></p>
+      <p class="hint">Cookie 等价于账号凭据，别贴到公开的地方。本扩展的平时使用 <b>不需要</b>它——在浏览器里登录 115 网页版即可。</p>
+    </div>
+
+    <p class="hint" id="diag" hidden></p>
+  </div>
+
+  <p class="note">
+    · 接口链路（与命令行脚本一致）：<br>
+    &nbsp;&nbsp;<code>GET qrcodeapi.115.com/api/1.0/web/1.0/token/</code> → <code>GET qrcodeapi.115.com/api/1.0/{app}/1.0/qrcode/?uid=…</code><br>
+    &nbsp;&nbsp;<code>GET qrcodeapi.115.com/get/status/?uid&amp;time&amp;sign</code>（status: 0 未扫 / 1 已扫 / 2 已确认 / -1 过期 / -2 取消）<br>
+    &nbsp;&nbsp;<code>POST passportapi.115.com/app/1.0/{app}/1.0/login/qrcode/</code>（account=uid）→ set-cookie<br>
+    · 二维码图片的内容是 <code>https://yun.115.com/scan/dg-&lt;uid&gt;</code>，与 token 里的 qrcode 字段只有域名不同，所以自检只比对 uid。
+  </p>
+</div>
+<script src="shared.js"></script>
+<script src="login.js"></script>
+</body>
+</html>

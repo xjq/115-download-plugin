@@ -42,6 +42,12 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.tabs.create({ url: 'https://115.com/?ct=login' });
   });
 
+  $('openLogin').addEventListener('click', function () {
+    chrome.tabs.create({ url: chrome.runtime.getURL('login.html') }, function () {
+      void chrome.runtime.lastError;
+    });
+  });
+
   for (var i = 0; i < KEYS.length; i++) {
     (function (key) {
       var el = $(key);

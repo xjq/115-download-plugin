@@ -17,6 +17,47 @@
     home: 'https://115.com/'
   };
 
+  // 二维码扫码接口（与 chenyanggao/115 的 qrcode_login.py 一致）
+  var QRCODE = {
+    token: 'https://qrcodeapi.115.com/api/1.0/web/1.0/token/',
+    status: 'https://qrcodeapi.115.com/get/status/',
+    result: 'https://passportapi.115.com/app/1.0/%s/1.0/login/qrcode/',
+    image: 'https://qrcodeapi.115.com/api/1.0/%s/1.0/qrcode/'
+  };
+
+  // 二维码图片内容与 token.qrcode 只有域名不同（yun.115.com / 115.com），
+  // 所以扫码后不能整段比对，只能比对末尾的 uid
+  function scanPayloadMatches(text, uid) {
+    if (!text || !uid) return false;
+    var tail = String(text).replace(/^[a-z]+:\/\/[^/]*/i, '');
+    return tail === '/scan/dg-' + uid;
+  }
+
+  // 扫码绑定的设备类型；兑换出来的 Cookie 会被 115 标成这种设备
+  // 注意：会让同类型 app 的旧设备下线
+  var APP_SLOTS = ['web', 'android', 'ios', 'linux', 'mac', 'windows', 'tv', 'alipaymini', 'wechatmini', 'qandroid'];
+  // 实测：只有这几个通道的 token 接口带 qrcode 链接；mac/linux/windows/tv 只返回 uid/time/sign
+  var QRCODE_TOKEN_APPS = ['web', 'android', 'ios', 'alipaymini', 'wechatmini', 'qandroid'];
+  var APP_NAMES = {
+    web: '网页版', android: '安卓', ios: 'iOS', linux: 'Linux', mac: 'macOS',
+    windows: 'Windows', tv: 'TV', alipaymini: '支付宝小程序',
+    wechatmini: '微信小程序', qandroid: '安卓（副）'
+  };
+
+  function normalizeApp(app) {
+    if (typeof app === 'number' && app >= 1 && app <= APP_SLOTS.length && app % 1 === 0) {
+      return APP_SLOTS[app - 1];
+    }
+    var s = String(app == null ? '' : app).trim().toLowerCase();
+    if (APP_SLOTS.indexOf(s) >= 0) return s;
+    return 'web';
+  }
+
+  function appName(app) {
+    var a = normalizeApp(app);
+    return APP_NAMES[a] || a;
+  }
+
   function captchaUrl() {
     return 'https://captchaapi.115.com/?ac=security_code&type=web&client=pc' +
       '&cb=Close' + Math.floor(1000 + Math.random() * 9000) + '_' + Date.now();
@@ -160,6 +201,12 @@
 
   global.Magnet115 = {
     URLS: URLS,
+    QRCODE: QRCODE,
+    APP_SLOTS: APP_SLOTS,
+    QRCODE_TOKEN_APPS: QRCODE_TOKEN_APPS,
+    normalizeApp: normalizeApp,
+    appName: appName,
+    scanPayloadMatches: scanPayloadMatches,
     captchaUrl: captchaUrl,
     normalizeMagnet: normalizeMagnet,
     normalizeEd2k: normalizeEd2k,

@@ -27,7 +27,8 @@ $crxOut = Join-Path $dist "115-magnet-helper-v$version.crx"
 $zipOut = Join-Path $dist "115-magnet-helper-v$version.zip"
 
 $RUNTIME = @('manifest.json','shared.js','background.js','content.js',
-             'popup.html','popup.js','options.html','options.js','icons')
+             'popup.html','popup.js','options.html','options.js',
+             'login.html','login.js','lib','icons')
 
 # ---- 1. staging：只复制运行时文件 ----
 $stamp   = [guid]::NewGuid().ToString('N').Substring(0,8)

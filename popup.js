@@ -33,6 +33,18 @@ document.addEventListener('DOMContentLoaded', function () {
   $('openSettings').addEventListener('click', function () {
     chrome.runtime.openOptionsPage();
   });
+  $('openLogin').addEventListener('click', function () {
+    var url = chrome.runtime.getURL('login.html');
+    var tip = $('tip');
+    // 先自己建标签页：不依赖 Service Worker 消息往返，点了一定有反应
+    chrome.tabs.create({ url: url }, function () {
+      if (chrome.runtime.lastError) {
+        tip.textContent = '打开失败：' + chrome.runtime.lastError.message;
+        return;
+      }
+      window.close();
+    });
+  });
 
   $('rescan').addEventListener('click', async function () {
     var out = $('scanResult');

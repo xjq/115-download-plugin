@@ -200,6 +200,15 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
           sendResponse({ loggedIn: cred.loggedIn, uid: cred.loggedIn ? cred.uid : '' });
           return;
         }
+        case 'OPEN_LOGIN_PAGE': {
+          // 和上面的 OPEN_URL / OPEN_OPTIONS 一样直接在本上下文建标签页；
+          // 不要依赖 Service Worker 的异步 sendResponse，免得 SW 休眠时消息丢了没反应
+          chrome.tabs.create({ url: chrome.runtime.getURL('login.html') }, function () {
+            void chrome.runtime.lastError;
+          });
+          sendResponse({ ok: true });
+          return;
+        }
         case 'OPEN_URL': {
           if (typeof msg.url === 'string' && /^https?:\/\//i.test(msg.url)) {
             chrome.tabs.create({ url: msg.url });

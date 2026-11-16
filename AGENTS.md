@@ -30,7 +30,10 @@ Chrome/Edge 扩展（Manifest V3）：检测网页磁力链/ed2k 链接，一键
 | `background.js` | Service Worker，唯一联网模块；登录态/签名/提交/右键菜单/通知 |
 | `content.js` | 检测 + Shadow DOM UI（FAB/面板/Toast）；类名无前缀但全在 Shadow 内 |
 | `popup.*` / `options.*` | 工具栏弹窗 / 设置页；设置存 `chrome.storage.sync` |
-| `tools/pack.ps1` | 一键打包 CRX+ZIP |
+| `login.html` / `login.js` | 扫码获取 Token / Cookie 的扩展页面（纯浏览器 `fetch`，不经 Python/第三方） |
+| `lib/jsQR.js` | 二维码解码库（jsQR 1.4.0，MIT），仅页面「自检二维码解码」用 |
+| `tools/pack.ps1` | 一键打包 CRX+ZIP（`$RUNTIME` 新增文件要同步加进去） |
+| `tools/test-login.js` | `login.js` 离线自测（假 DOM+假 fetch，`node tools/test-login.js`） |
 | `tools/crx_id.py` | 解析 CRX3 公钥算扩展 ID |
 | `tools/make_icons.py` | PIL 生成图标 |
 | `test/test.html` | 检测样本页（预期 5 条） |
@@ -48,6 +51,10 @@ Chrome/Edge 扩展（Manifest V3）：检测网页磁力链/ed2k 链接，一键
   不依赖外部 css 文件；`hidden` 属性必须配 `.x[hidden]{display:none}`（author 样式会覆盖 UA 的 `[hidden]`）。
 - 批量提交逐条 `sleep(500)` 限速，避免触发 115 风控。
 - 新增权限要克制：当前仅 `storage cookies contextMenus notifications` + host `*://*.115.com/*`。
+- 扫码页只在扩展页面里跑，用的是 manifest 已声明的 `*://*.115.com/*` host 权限，**不要为它加新权限**；
+  `fetch` 一律 `credentials:'omit'`，不能覆盖浏览器里的登录 Cookie。
+- 115 二维码图片解出来是 `https://yun.115.com/scan/dg-<uid>`，与 token 的 `qrcode` 字段（`https://115.com/...`）
+  只有域名不同，比对时用 `M.scanPayloadMatches(text, uid)`，不要整段比较。
 
 ## 开发与验证流程
 
@@ -84,6 +91,10 @@ Chrome/Edge 扩展（Manifest V3）：检测网页磁力链/ed2k 链接，一键
   拖拽/双击/命令行一律拒。已实测确认，与打包方式无关。
 - Edge 的 headless 模式在 157 已损坏（`--dump-dom` 输出 0 字节）；Chrome 的 headless 正常。
   浏览器版本会变（记录时 151→157），不要硬编码版本假设，先探测。
+- **DSH 沙箱内起不了浏览器**：Chrome/Edge 启动即 `FATAL: mojo ... Check failed: 拒绝访问 (0x5)`
+  （沙箱禁止创建命名管道，`--no-sandbox` / `--single-process` 也绕不过）。所以浏览器端 UI 改动
+  只能靠「静态自检 + `tools/test-login.js` 假 DOM」兜底，真机验证交给用户手动加载扩展。
+  别在这上面反复试错。
 - 想摆脱开发者模式只有两条路：上架 Web Store（$5+审核），或企业策略 + HTTPS 托管
   update manifest（副作用：Chrome 显示「由贵单位管理」，Forcelist 装的扩展无法自行卸载）。
 
