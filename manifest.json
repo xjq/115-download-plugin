@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "115 磁力离线助手",
+  "version": "1.0.0",
+  "description": "自动检测网页中的磁力链接，一键提交到 115 网盘离线下载（需已登录 115 网页版，无需第三方服务器）。",
+  "minimum_chrome_version": "110",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "115 磁力离线助手",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "permissions": [
+    "storage",
+    "cookies",
+    "contextMenus",
+    "notifications"
+  ],
+  "host_permissions": [
+    "*://*.115.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": ["*://*.115.com/*"],
+      "js": ["shared.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

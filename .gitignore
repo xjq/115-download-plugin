@@ -1,0 +1,13 @@
+# 打包产物：含私钥 *.pem（决定扩展 ID，泄露=失控），crx/zip 可由 tools/pack.ps1 重新生成
+dist/
+
+# 系统 / 编辑器
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

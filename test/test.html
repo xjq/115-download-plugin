@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>115 磁力离线助手 - 检测测试页</title>
+<style>
+  body { font-family: system-ui, "Microsoft YaHei", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.8; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 17px; margin-top: 32px; color: #0FA958; }
+  a { color: #0b66d3; }
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; word-break: break-all; }
+  .hash { font-family: Consolas, monospace; }
+</style>
+</head>
+<body>
+<h1>115 磁力离线助手 · 测试页</h1>
+<p>本页包含多种形式的磁力链，用于测试扩展的检测能力。检测到后，右下角应出现「115 离线」浮动按钮。</p>
+
+<h2>1. 标准链接（a[href]）</h2>
+<ul>
+  <li><a href="magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=Ubuntu.24.04.LTS.ISO">Ubuntu 24.04 LTS（含 dn 名称）</a></li>
+  <li><a href="magnet:?xt=urn:btih:89abcdef0123456789abcdef0123456789abcdef">Debian netinst（无 dn）</a></li>
+</ul>
+
+<h2>2. 纯文本磁力链（正文里，未做成链接）</h2>
+<p>复制这行文字：<code>magnet:?xt=urn:btih:fedcba9876543210fedcba9876543210fedcba98&dn=ArchLinux.ISO</code></p>
+<p>带 tracker 的：<code>magnet:?xt=urn:btih:aaaabbbbccccddddeeeeffff0000111122223333&dn=Test.Package&tr=udp%3A%2F%2Ftracker.example.com%3A1337</code></p>
+
+<h2>3. ed2k 链接</h2>
+<p><a href="ed2k://|file|Some.Big.File.mkv|734003200|31D6CFE0D16AE931B73C59D7E0C089C0|h=P4JL2T5BPLW3CFR4HVCJUYDXB2DB6QAB|/">ed2k 下载链接</a></p>
+
+<h2>4. 裸 SHA1 哈希（仅右键选中文本测试）</h2>
+<p class="hash">1234567890abcdef1234567890abcdef12345678</p>
+
+<h2>5. 干扰项（不应被检测）</h2>
+<p>普通链接：<a href="https://example.com/some-torrent-page">https://example.com/some-torrent-page</a>；短哈希：<code>abc123</code></p>
+
+<p>在 URL 后加 <code>#115-show</code> 可让面板自动展开。</p>
+</body>
+</html>
